@@ -14,7 +14,7 @@ import (
 
 	"github.com/weidanhome2018/embd"
 	_ "github.com/weidanhome2018/embd/host/all" // Empty import needed to initialize embd library.
-	_ "github.com/weidanhome2018/embd/host/rpi" // Empty import needed to initialize embd library.
+	_ "github.com/weidanhome2018/embd/host/hfga" // Empty import needed to initialize embd library.
 )
 
 const (
