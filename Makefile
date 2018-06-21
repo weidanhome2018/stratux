@@ -6,7 +6,7 @@ else
 	LDFLAGS_VERSION=-X main.stratuxVersion=`git describe --tags --abbrev=0` -X main.stratuxBuild=`git log -n 1 --pretty=%H`
 	BUILDINFO=-ldflags "$(LDFLAGS_VERSION)"
 	BUILDINFO_STATIC=-ldflags "-extldflags -static $(LDFLAGS_VERSION)"
-$(if $(GOROOT),,$(error GOROOT is not set!))
+#$(if $(GOROOT),,$(error GOROOT is not set!))
 	PLATFORMDEPENDENT=fancontrol
 endif
 
