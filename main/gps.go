@@ -191,7 +191,7 @@ func makeNMEACmd(cmd string) []byte {
 
 func initGPSSerial() bool {
 	var device string
-	baudrate := int(9600)
+	baudrate := int(115200)
 	isSirfIV := bool(false)
 	globalStatus.GPS_detected_type = 0 // reset detected type on each initialization
 
@@ -210,8 +210,8 @@ func initGPSSerial() bool {
 		baudrate = 4800
 		device = "/dev/prolific0"
 		globalStatus.GPS_detected_type = GPS_TYPE_PROLIFIC
-	} else if _, err := os.Stat("/dev/ttyAMA0"); err == nil { // ttyAMA0 is PL011 UART (GPIO pins 8 and 10) on all RPi.
-		device = "/dev/ttyAMA0"
+	} else if _, err := os.Stat("/dev/ttymxc2"); err == nil { // ttyAMA0 is PL011 UART (GPIO pins 8 and 10) on all RPi.
+		device = "/dev/ttymxc2"
 		globalStatus.GPS_detected_type = GPS_TYPE_UART
 	} else {
 		log.Printf("No suitable device found.\n")
@@ -228,7 +228,7 @@ func initGPSSerial() bool {
 		log.Printf("serial port err: %s\n", err.Error())
 		return false
 	}
-
+/*
 	if isSirfIV {
 		log.Printf("Using SiRFIV config.\n")
 		// Enable 38400 baud.
@@ -388,6 +388,7 @@ func initGPSSerial() bool {
 			log.Printf("Finished writing u-blox GPS config to %s. Opening port to test connection.\n", device)
 		}
 	}
+*/
 	p.Close()
 
 	time.Sleep(250 * time.Millisecond)
