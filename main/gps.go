@@ -192,7 +192,7 @@ func makeNMEACmd(cmd string) []byte {
 func initGPSSerial() bool {
 	var device string
 	baudrate := int(115200)
-	isSirfIV := bool(false)
+	//isSirfIV := bool(false)
 	globalStatus.GPS_detected_type = 0 // reset detected type on each initialization
 
 	if _, err := os.Stat("/dev/ublox8"); err == nil { // u-blox 8 (RY83xAI over USB).
@@ -206,7 +206,7 @@ func initGPSSerial() bool {
 		globalStatus.GPS_detected_type = GPS_TYPE_UBX6
 	} else if _, err := os.Stat("/dev/prolific0"); err == nil { // Assume it's a BU-353-S4 SIRF IV.
 		//TODO: Check a "serialout" flag and/or deal with multiple prolific devices.
-		isSirfIV = true
+		//isSirfIV = true
 		baudrate = 4800
 		device = "/dev/prolific0"
 		globalStatus.GPS_detected_type = GPS_TYPE_PROLIFIC
