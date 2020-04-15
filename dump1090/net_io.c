@@ -757,15 +757,19 @@ static void modesSendStratuxOutput(struct modesMessage *mm, struct aircraft *a) 
 			case 1:
 				emitter = ((mm->mesub) | 0x18);
 				setEmitter = 1;
+				break;
 			case 2:
 				emitter = ((mm->mesub) | 0x10);
 				setEmitter = 1;
+				break;
 			case 3:
 				emitter = ((mm->mesub) | 0x08);
 				setEmitter = 1;
+				break;
 			case 4:
 				emitter = (mm->mesub);
 				setEmitter = 1;
+				break;
 		}
 	}
 	
