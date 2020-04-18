@@ -11,8 +11,6 @@ import (
 	"../goflying/ahrs"
 	"../goflying/ahrsweb"
 	"../sensors"
-	"github.com/weidanhome2018/embd"
-	_ "github.com/weidanhome2018/embd/host/all"
 	i2c "github.com/d2r2/go-i2c"
 	logger "github.com/d2r2/go-logger"
 	mpl3115a2 "github.com/d2r2/go-mpl3115a2"
@@ -73,18 +71,18 @@ func tempAndPressureSender() {
 
 	i2c, erri2c := i2c.NewI2C(0x60, 2)
 	if erri2c != nil {
-		log.Printf(err)
+		log.Printf("error inint i2c")
 	}
 	defer i2c.Close()
 	// Uncomment/comment next line to suppress/increase verbosity of output
 	logger.ChangePackageLogLevel("i2c", logger.InfoLevel)
-	ogger.ChangePackageLogLevel("mpl3115a2", logger.InfoLevel)	
+	logger.ChangePackageLogLevel("mpl3115a2", logger.InfoLevel)	
 	
 	myPressureReader := mpl3115a2.NewMPL3115A2()
 	// Reset sensor
 	erri2c = myPressureReader.Reset(i2c)
 	if erri2c != nil {
-		log.Printf(err)
+		log.Printf("error reset mpl3115a2")
 	}
 	// Initialize variables for rate of climb calc	
 	u := 5 / (5 + float32(dt)) // Use 5 sec decay time for rate of climb, slightly faster than typical VSI
@@ -97,7 +95,7 @@ func tempAndPressureSender() {
 		<-timer.C
 
 		// Read temperature and pressure altitude.
-		press, temp, err = myPressureReader.Pressure()
+		press, temp, err = myPressureReader.MeasurePressure(i2c, osr)
 		if err != nil {
 			addSingleSystemErrorf("pressure-sensor-temp/pressure-read", "AHRS Error: Couldn't read temperature/pressure from sensor: %s", err)
 			failNum++
