@@ -69,8 +69,8 @@ const (
 	NETWORK_GDL90_STANDARD = 1
 	NETWORK_AHRS_FFSIM     = 2
 	NETWORK_AHRS_GDL90     = 4
-	dhcp_lease_file        = "/var/lib/dhcp/dhcpd.leases"
-	dhcp_lease_dir         = "/var/lib/dhcp"
+	dhcp_lease_file        = "/home/var/dhcpd.leases"
+	dhcp_lease_dir         = "/home/var/"
 	extra_hosts_file       = "/etc/stratux-static-hosts.conf"
 )
 
