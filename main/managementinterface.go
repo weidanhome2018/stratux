@@ -286,7 +286,7 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 					case "BMP_Sensor_Enabled":
 						globalSettings.BMP_Sensor_Enabled = val.(bool)
 						if !globalSettings.BMP_Sensor_Enabled && globalStatus.BMPConnected {
-							myPressureReader.Close()
+							//myPressureReader.Close()
 							globalStatus.BMPConnected = false
 						}
 					case "DEBUG":
