@@ -13,6 +13,9 @@ import (
 	"../sensors"
 	"github.com/weidanhome2018/embd"
 	_ "github.com/weidanhome2018/embd/host/all"
+	i2c "github.com/d2r2/go-i2c"
+	logger "github.com/d2r2/go-logger"
+	mpl3115a2 "github.com/d2r2/go-mpl3115a2"
 )
 
 const (
@@ -22,8 +25,6 @@ const (
 )
 
 var (
-	i2cbus           embd.I2CBus
-	myPressureReader sensors.PressureReader
 	myIMUReader      sensors.IMUReader
 	cal              chan (string)
 	analysisLogger   *ahrs.AHRSLogger
@@ -32,8 +33,6 @@ var (
 )
 
 func initI2CSensors() {
-	i2cbus = embd.NewI2CBus(1)
-
 	go pollSensors()
 	go sensorAttitudeSender()
 	go updateAHRSStatus()
@@ -58,21 +57,13 @@ func pollSensors() {
 }
 
 func initPressureSensor() (ok bool) {
-	bmp, err := sensors.NewBMP280(&i2cbus, 100*time.Millisecond)
-	if err == nil {
-		myPressureReader = bmp
-		return true
-	}
-
-	//TODO westphae: make bmp180.go to fit bmp interface
-
-	return false
+	return true
 }
 
 func tempAndPressureSender() {
 	var (
-		temp     float64
-		press    float64
+		temp     float32
+		press    float32
 		altLast  = -9999.9
 		altitude float64
 		err      error
@@ -80,25 +71,38 @@ func tempAndPressureSender() {
 		failNum  uint8
 	)
 
-	// Initialize variables for rate of climb calc
+	i2c, erri2c := i2c.NewI2C(0x60, 2)
+	if erri2c != nil {
+		log.Printf(err)
+	}
+	defer i2c.Close()
+	// Uncomment/comment next line to suppress/increase verbosity of output
+	logger.ChangePackageLogLevel("i2c", logger.InfoLevel)
+	ogger.ChangePackageLogLevel("mpl3115a2", logger.InfoLevel)	
+	
+	myPressureReader := mpl3115a2.NewMPL3115A2()
+	// Reset sensor
+	erri2c = myPressureReader.Reset(i2c)
+	if erri2c != nil {
+		log.Printf(err)
+	}
+	// Initialize variables for rate of climb calc	
 	u := 5 / (5 + float32(dt)) // Use 5 sec decay time for rate of climb, slightly faster than typical VSI
-
+	
+	// Oversample Ratio - define precision, from low(0) to high(7)	
+	osr := 3
+	
 	timer := time.NewTicker(time.Duration(1000*dt) * time.Millisecond)
 	for globalSettings.BMP_Sensor_Enabled && globalStatus.BMPConnected {
 		<-timer.C
 
 		// Read temperature and pressure altitude.
-		temp, err = myPressureReader.Temperature()
+		press, temp, err = myPressureReader.Pressure()
 		if err != nil {
-			addSingleSystemErrorf("pressure-sensor-temp-read", "AHRS Error: Couldn't read temperature from sensor: %s", err)
-		}
-		press, err = myPressureReader.Pressure()
-		if err != nil {
-			addSingleSystemErrorf("pressure-sensor-pressure-read", "AHRS Error: Couldn't read pressure from sensor: %s", err)
+			addSingleSystemErrorf("pressure-sensor-temp/pressure-read", "AHRS Error: Couldn't read temperature/pressure from sensor: %s", err)
 			failNum++
 			if failNum > numRetries {
 				//				log.Printf("AHRS Error: Couldn't read pressure from sensor %d times, closing BMP: %s", failNum, err)
-				myPressureReader.Close()
 				globalStatus.BMPConnected = false // Try reconnecting a little later
 				break
 			}
@@ -108,7 +112,7 @@ func tempAndPressureSender() {
 		mySituation.muBaro.Lock()
 		mySituation.BaroLastMeasurementTime = stratuxClock.Time
 		mySituation.BaroTemperature = float32(temp)
-		altitude = CalcAltitude(press)
+		altitude = CalcAltitude(float64(press)*1000)
 		mySituation.BaroPressureAltitude = float32(altitude)
 		if altLast < -2000 {
 			altLast = altitude // Initialize
