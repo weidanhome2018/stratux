@@ -469,9 +469,9 @@ func makeStratuxStatus() []byte {
 	msg[3] = 1 // "message version".
 
 	// Version code. Messy parsing to fit into four bytes.
-	thisVers := stratuxVersion[1:]                       // Skip first character, should be 'v'.
-	m_str := thisVers[0:strings.Index(thisVers, ".")]    // Major version.
-	mib_str := thisVers[strings.Index(thisVers, ".")+1:] // Minor and build version.
+	thisVers := "10"                       // Skip first character, should be 'v'.
+	m_str := thisVers+"."    // Major version.
+	mib_str := "20" // Minor and build version.
 
 	tp := 0 // Build "type".
 	mi_str := ""
