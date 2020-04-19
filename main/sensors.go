@@ -344,8 +344,8 @@ func sensorAttitudeSender() {
 			}
 			mySituation.muAttitude.Unlock()
 			
-			writeData[0] = byte(int16(mySituation.mySituation.AHRSRoll*100) >> 8) //roll
-		        writeData[1] = byte(int16(mySituation.mySituation.AHRSRoll*100) & 0x00FF)
+			writeData[0] = byte(int16(mySituation.AHRSRoll*100) >> 8) //roll
+		        writeData[1] = byte(int16(mySituation.AHRSRoll*100) & 0x00FF)
 		        writeData[2] = byte(int16(mySituation.AHRSPitch*100) >> 8)   //pitch
 		        writeData[3] = byte(int16(mySituation.AHRSPitch*100) & 0x00FF)
 		        writeData[4] = byte(int16(mySituation.AHRSGyroHeading*100) >> 8)   //heading
