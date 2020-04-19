@@ -14,6 +14,7 @@ import (
 	i2c "github.com/d2r2/go-i2c"
 	logger "github.com/d2r2/go-logger"
 	mpl3115a2 "github.com/d2r2/go-mpl3115a2"
+	"github.com/goburrow/modbus"
 )
 
 const (
@@ -61,14 +62,24 @@ func initPressureSensor() (ok bool) {
 func tempAndPressureSender() {
 	var (
 		temp     float32
-		press    float32
+		//press    float32
 		altLast  = -9999.9
-		altitude float64
+		altitude float32
 		err      error
 		dt       = 0.1
 		failNum  uint8
 	)
+        // Modbus TCP
+        handler := modbus.NewTCPClientHandler("localhost:502")
+	handler.Timeout = 5 * time.Second
+	handler.SlaveId = 0x01
+	//handler.Logger = log.New(os.Stdout, "tcp: ", log.LstdFlags)
+	handler.Connect()
+	defer handler.Close()
 
+	client := modbus.NewClient(handler)
+	writeData := make([]byte, 6)
+	
 	i2c, erri2c := i2c.NewI2C(0x60, 2)
 	if erri2c != nil {
 		log.Printf("error inint i2c")
@@ -95,7 +106,7 @@ func tempAndPressureSender() {
 		<-timer.C
 
 		// Read temperature and pressure altitude.
-		press, temp, err = myPressureReader.MeasurePressure(i2c, osr)
+		altitude, temp, err = myPressureReader.MeasureAltitude(i2c, osr)
 		if err != nil {
 			addSingleSystemErrorf("pressure-sensor-temp/pressure-read", "AHRS Error: Couldn't read temperature/pressure from sensor: %s", err)
 			failNum++
@@ -110,15 +121,26 @@ func tempAndPressureSender() {
 		mySituation.muBaro.Lock()
 		mySituation.BaroLastMeasurementTime = stratuxClock.Time
 		mySituation.BaroTemperature = float32(temp)
-		altitude = CalcAltitude(float64(press)*1000)
+		//altitude = CalcAltitude(float64(press)*1000)
 		mySituation.BaroPressureAltitude = float32(altitude)
 		if altLast < -2000 {
-			altLast = altitude // Initialize
+			altLast = float64(altitude) // Initialize
 		}
 		// Assuming timer is reasonably accurate, use a regular ewma
-		mySituation.BaroVerticalSpeed = u*mySituation.BaroVerticalSpeed + (1-u)*float32(altitude-altLast)/(float32(dt)/60)
+		mySituation.BaroVerticalSpeed = u*mySituation.BaroVerticalSpeed + (1-u)*float32(float64(altitude)-altLast)/(float32(dt)/60)
 		mySituation.muBaro.Unlock()
-		altLast = altitude
+		altLast = float64(altitude)
+	
+		writeData[0] = byte(int16(mySituation.BaroPressureAltitude*100) >> 8) //altitude
+		writeData[1] = byte(int16(mySituation.BaroPressureAltitude*100) & 0x00FF)
+		writeData[2] = byte(int16(mySituation.BaroTemperature*100) >> 8)   //temperature
+		writeData[3] = byte(int16(mySituation.BaroTemperature*100) & 0x00FF)
+		writeData[4] = byte(int16(mySituation.BaroVerticalSpeed*100) >> 8)   //verticalspeed
+		writeData[5] = byte(int16(mySituation.BaroVerticalSpeed*100) & 0x00FF)	
+		results, errmodbus := client.WriteMultipleRegisters(0, 3, writeData)
+		if errmodbus != nil || results == nil {
+		        log.Printf("error send mpl3115a2 modbus message")
+	        }	
 	}
 	mySituation.BaroPressureAltitude = 99999
 	mySituation.BaroVerticalSpeed = 99999
@@ -145,7 +167,17 @@ func sensorAttitudeSender() {
 		mpuError, magError   error
 		failNum              uint8
 	)
+        // Modbus TCP
+        handler := modbus.NewTCPClientHandler("localhost:502")
+	handler.Timeout = 5 * time.Second
+	handler.SlaveId = 0x01
+	//handler.Logger = log.New(os.Stdout, "tcp: ", log.LstdFlags)
+	handler.Connect()
+	defer handler.Close()
 
+	client := modbus.NewClient(handler)
+	writeData := make([]byte, 6)	
+	
 	s := ahrs.NewSimpleAHRS()
 	m := ahrs.NewMeasurement()
 	cal = make(chan (string), 1)
@@ -311,7 +343,18 @@ func sensorAttitudeSender() {
 				s.Reset()
 			}
 			mySituation.muAttitude.Unlock()
-
+			
+			writeData[0] = byte(int16(mySituation.mySituation.AHRSRoll*100) >> 8) //roll
+		        writeData[1] = byte(int16(mySituation.mySituation.AHRSRoll*100) & 0x00FF)
+		        writeData[2] = byte(int16(mySituation.AHRSPitch*100) >> 8)   //pitch
+		        writeData[3] = byte(int16(mySituation.AHRSPitch*100) & 0x00FF)
+		        writeData[4] = byte(int16(mySituation.AHRSGyroHeading*100) >> 8)   //heading
+		        writeData[5] = byte(int16(mySituation.AHRSGyroHeading*100) & 0x00FF)	
+		        results, errmodbus := client.WriteMultipleRegisters(0, 3, writeData)
+		        if errmodbus != nil || results == nil {
+		             log.Printf("error send mpu9250 modbus message")
+	                }
+			
 			makeAHRSGDL90Report() // Send whether or not valid - the function will invalidate the values as appropriate
 
 			// Send to AHRS debugging server.
