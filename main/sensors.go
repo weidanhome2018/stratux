@@ -350,7 +350,7 @@ func sensorAttitudeSender() {
 		        writeData[3] = byte(int16(mySituation.AHRSPitch*100) & 0x00FF)
 		        writeData[4] = byte(int16(mySituation.AHRSGyroHeading*100) >> 8)   //heading
 		        writeData[5] = byte(int16(mySituation.AHRSGyroHeading*100) & 0x00FF)	
-		        results, errmodbus := client.WriteMultipleRegisters(0, 3, writeData)
+		        results, errmodbus := client.WriteMultipleRegisters(5, 3, writeData)
 		        if errmodbus != nil || results == nil {
 		             log.Printf("error send mpu9250 modbus message")
 	                }
